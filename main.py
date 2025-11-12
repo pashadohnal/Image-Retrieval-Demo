@@ -4,14 +4,14 @@ import numpy as np
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from glob import glob
-import pickle
+import pickle, shutil
 
 IMG_WIDTH, IMG_HEIGHT = 224, 224  # ResNet50 default input size
 EMBEDDINGS_FILE = "db_embeddings.pkl"
 
 model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
 
-
+#Extracting embeddings from the images in the folder
 def extract_resnet_features(img_path, model):
     img = cv.imread(img_path)
     img_resized = cv.resize(img, (IMG_WIDTH, IMG_HEIGHT))
@@ -23,6 +23,21 @@ def extract_resnet_features(img_path, model):
     # Normalize to unit vector (optional, helps with cosine similarity)
     features = features / np.linalg.norm(features)
     return features
+
+#Saving embeddings into a file
+def build_database_embeddings(database_dir="image.orig"):
+    database_files = sorted(glob(os.path.join(database_dir, "*.jpg")))
+    db_features_list = []
+
+    for file in database_files:
+        features = extract_resnet_features(file, model)
+        db_features_list.append(features)
+
+    db_features = np.array(db_features_list)
+    # Save embeddings and file paths
+    with open(EMBEDDINGS_FILE, "wb") as f:
+        pickle.dump({"features": db_features, "paths": database_files}, f)
+    print(f"Saved {len(database_files)} embeddings to {EMBEDDINGS_FILE}")
 
 def retrieval():
     # --- Load precomputed embeddings ---
@@ -73,9 +88,62 @@ def retrieval():
 
     exit
     
-def threshold_similarity(threshold):
-    threshold
-    pass
+def threshold_similarity(threshold = 0.8, output = "image.similar"):
+        # --- Load precomputed embeddings ---
+    if not os.path.exists(EMBEDDINGS_FILE):
+        print("Embeddings not found! Run build_database_embeddings() first.")
+        return
+
+    with open(EMBEDDINGS_FILE, "rb") as f:
+        data = pickle.load(f)
+    db_features = data["features"]
+    database_files = data["paths"]
+
+    # --- Choose query image ---
+    print("1: beach\n2: mountain\n3: food\n4: dinosaur\n5: flower\n6: horse\n7: elephant")
+    choice = input("Type the number to choose a category: ")
+
+    query_file_map = {
+        '1': 'beach.jpg',
+        '2': 'mountain.jpg',
+        '3': 'food.jpg',
+        '4': 'dinosaur.jpg',
+        '5': 'flower.jpg',
+        '6': 'horse.jpg',
+        '7': 'elephant.jpg'
+    }
+
+    if choice not in query_file_map:
+        print("Invalid choice")
+        return
+
+    src_path = os.path.join("image.query", query_file_map[choice])
+    query_features = extract_resnet_features(src_path, model)
+    print(f"You chose: {query_file_map[choice]}")
+
+    cv.imshow("Query", cv.imread(src_path))
+
+    # --- Compute distances ---
+    distances = np.linalg.norm(db_features - query_features, axis=1)
+    threshold_value = np.min(distances) + (np.max(distances) - np.min(distances)) * threshold
+    closest_idxs = np.where(distances<threshold)[0]
+    closest_files = [database_files[i] for i in closest_idxs]
+    
+    os.makedirs(output, exist_ok=True)
+
+    for file_path in closest_files:
+        shutil.copy(file_path, output)
+
+    
+
+    print(f"{len(closest_files)} images were saved to in {output}")
+
+   
+    
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+    exit
 
 def precision():
     pass
