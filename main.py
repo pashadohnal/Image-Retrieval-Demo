@@ -7,12 +7,42 @@ from glob import glob
 import pickle, shutil
 from pathlib import Path
 
+
+### Annotated Files ###
+files = []
+
+
+folder_path = "image.orig"
+
+for item in os.listdir(folder_path):
+    item_path = os.path.join(folder_path, item)  # Get full path
+    if item.lower().endswith(".jpg"):
+        files.append(item)
+files = sorted(files, key=lambda x: int(os.path.splitext(x)[0]))
+
+print(len(files))
+labels = [9, 1, 9, 9 , 4, 7, 5, 6, 2, 3]
+
+
+img_labels = []
+for i in labels:
+    img_labels += [i] * 100
+
+
+filename_label = dict(zip(files, img_labels))
+print(set(list(filename_label.values())[800:900]))
+print(list(filename_label.keys())[111])
+
+
+### Preparing retrieval from saved embeddings
+
+
 IMG_WIDTH, IMG_HEIGHT = 224, 224  # ResNet50 default input size
 EMBEDDINGS_FILE = "db_embeddings.pkl"
 
 model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
 
-#Extracting embeddings from the images in the folder
+### Extracting embeddings from the images in the folder2
 def extract_resnet_features(img_path, model):
     img = cv.imread(img_path)
     img_resized = cv.resize(img, (IMG_WIDTH, IMG_HEIGHT))
@@ -25,7 +55,7 @@ def extract_resnet_features(img_path, model):
     features = features / np.linalg.norm(features)
     return features
 
-#Saving embeddings into a file
+### Saving embeddings into a file
 def build_database_embeddings(database_dir="image.orig"):
     database_files = sorted(glob(os.path.join(database_dir, "*.jpg")))
     db_features_list = []
@@ -86,7 +116,7 @@ def retrieval():
     cv.imshow("Closest Match", closest_img)
     cv.waitKey(0)
     cv.destroyAllWindows()
-
+    
     exit()
     
 def threshold_similarity(model, threshold, output_folder):
@@ -100,10 +130,11 @@ def threshold_similarity(model, threshold, output_folder):
         data = pickle.load(f)
     db_features = data["features"]
     database_files = data["paths"]
-
+    
     # --- Choose query image ---
     print("1: beach\n2: mountain\n3: food\n4: dinosaur\n5: flower\n6: horse\n7: elephant")
     choice = input("Type the number to choose a category : ")
+    query_label = int(choice)
 
     query_file_map = {
         '1': 'beach.jpg',
@@ -123,8 +154,6 @@ def threshold_similarity(model, threshold, output_folder):
     query_features = extract_resnet_features(src_path, model)
     print(f"You chose: {query_file_map[choice]}")
 
-    cv.imshow("Query", cv.resize(cv.imread(src_path), (256, 256)))
-
     # --- Compute distances ---
     distances = np.linalg.norm(db_features - query_features, axis=1)
 
@@ -134,6 +163,8 @@ def threshold_similarity(model, threshold, output_folder):
     similarity = distance_to_similarity(distances)
     similarity_rescaled = (similarity - min(similarity)) / (max(similarity) - min(similarity))
     images = []
+
+
     for i in range(len(similarity)):
         if similarity_rescaled[i] > threshold :
             images.append(database_files[i])
@@ -152,13 +183,20 @@ def threshold_similarity(model, threshold, output_folder):
     folder(images, output_folder)
     print(f"Found {len(images)} images with similarity above {threshold}. Saved to folder '{output_folder}'.")
 
-    exit
+    true_class_files = [f for f, lbl in filename_label.items() if lbl == query_label]
 
-def precision_calc(images, choice):
-    pass
+    TP = sum(1 for f in images if filename_label[os.path.basename(f)] == query_label)
+    FP = len(images) - TP
+    FN = len(true_class_files) - TP
 
-def recall():
-    pass
+    precision_val = TP / (TP + FP) if (TP + FP) > 0 else 0
+    recall_val = TP / (TP + FN) if (TP + FN) > 0 else 0
+
+
+    print(f"True Positives: {TP}")
+    print(f"Precision: {precision_val:.3f}")
+    print(f"Recall:    {recall_val:.3f}")
+
 
 def relearn_embeddings(path):
     build_database_embeddings(path)
