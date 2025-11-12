@@ -160,8 +160,8 @@ def precision_calc(images, choice):
 def recall():
     pass
 
-def relearn_embeddings(path, model):
-    pass
+def relearn_embeddings(path):
+    build_database_embeddings(path)
 
 
 
@@ -175,12 +175,12 @@ def main():
     elif number == 2:
         threshold = float(input("Choose the threshold (0-1) : "))
         if threshold > 1 or threshold < 0:
-            print("Invalid threshold !")
+            print("Invalid threshold!")
             return
         output = input("Choose the folder name for similar images : ")
         threshold_similarity(model, threshold, output)
     else:
-        print("Invalid input !")
+        print("Invalid input!")
         exit()
 
 main()
