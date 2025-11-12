@@ -132,9 +132,10 @@ def threshold_similarity(model, threshold, output_folder):
         return 1 / (1 + distances)
     
     similarity = distance_to_similarity(distances)
+    similarity_rescaled = (similarity - min(similarity)) / (max(similarity) - min(similarity))
     images = []
     for i in range(len(similarity)):
-        if similarity[i] > threshold :
+        if similarity_rescaled[i] > threshold :
             images.append(database_files[i])
 
     def folder(src, folder):
@@ -150,9 +151,10 @@ def threshold_similarity(model, threshold, output_folder):
 
     folder(images, output_folder)
     print(f"Found {len(images)} images with similarity above {threshold}. Saved to folder '{output_folder}'.")
+
     exit
 
-def precision():
+def precision_calc(images, choice):
     pass
 
 def recall():
