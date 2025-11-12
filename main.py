@@ -5,6 +5,7 @@ from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from glob import glob
 import pickle, shutil
+from pathlib import Path
 
 IMG_WIDTH, IMG_HEIGHT = 224, 224  # ResNet50 default input size
 EMBEDDINGS_FILE = "db_embeddings.pkl"
@@ -88,8 +89,68 @@ def retrieval():
 
     exit()
     
-def threshold_similarity():
-    pass
+def threshold_similarity(model, threshold, output_folder):
+
+    # --- Load precomputed embeddings ---
+    if not os.path.exists(EMBEDDINGS_FILE):
+        print("Embeddings not found! Run build_database_embeddings() first.")
+        return
+
+    with open(EMBEDDINGS_FILE, "rb") as f:
+        data = pickle.load(f)
+    db_features = data["features"]
+    database_files = data["paths"]
+
+    # --- Choose query image ---
+    print("1: beach\n2: mountain\n3: food\n4: dinosaur\n5: flower\n6: horse\n7: elephant")
+    choice = input("Type the number to choose a category : ")
+
+    query_file_map = {
+        '1': 'beach.jpg',
+        '2': 'mountain.jpg',
+        '3': 'food.jpg',
+        '4': 'dinosaur.jpg',
+        '5': 'flower.jpg',
+        '6': 'horse.jpg',
+        '7': 'elephant.jpg'
+    }
+
+    if choice not in query_file_map:
+        print("Invalid choice")
+        return
+
+    src_path = os.path.join("image.query", query_file_map[choice])
+    query_features = extract_resnet_features(src_path, model)
+    print(f"You chose: {query_file_map[choice]}")
+
+    cv.imshow("Query", cv.resize(cv.imread(src_path), (256, 256)))
+
+    # --- Compute distances ---
+    distances = np.linalg.norm(db_features - query_features, axis=1)
+
+    def distance_to_similarity(distances):
+        return 1 / (1 + distances)
+    
+    similarity = distance_to_similarity(distances)
+    images = []
+    for i in range(len(similarity)):
+        if similarity[i] > threshold :
+            images.append(database_files[i])
+
+    def folder(src, folder):
+        Path(folder).mkdir(parents=True, exist_ok=True)
+    
+        for image_path in src:
+            if os.path.exists(image_path):
+
+                file_name = os.path.basename(image_path)
+                path = os.path.join(folder, file_name)
+            
+                shutil.copy2(image_path, path)
+
+    folder(images, output_folder)
+    print(f"Found {len(images)} images with similarity above {threshold}. Saved to folder '{output_folder}'.")
+    exit
 
 def precision():
     pass
@@ -102,8 +163,6 @@ def relearn_embeddings(path, model):
 
 
 
-
-
 def main():
     print("1: Retrieve the most similar image from the database")
     print("2: Find similar images with a threshold")
@@ -112,12 +171,14 @@ def main():
     if number == 1:
         retrieval()
     elif number == 2:
-        threshold = float(input("Choose the threshold (0-1)"))
-        output = input("Choose the folder name for similar images")
+        threshold = float(input("Choose the threshold (0-1) : "))
+        if threshold > 1 or threshold < 0:
+            print("Invalid threshold !")
+            return
+        output = input("Choose the folder name for similar images : ")
         threshold_similarity(model, threshold, output)
-    	# pass
     else:
-        print("Invalid input")
+        print("Invalid input !")
         exit()
 
 main()
