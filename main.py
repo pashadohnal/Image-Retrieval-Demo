@@ -13,7 +13,7 @@ sep = os.sep
 ### Annotated Files ###
 files = []
 
-folder_path = f"image.orig".replace("/", sep).replace("\\", sep)
+folder_path = f"image.orig"
 
 for item in os.listdir(folder_path):
     item_path = os.path.join(folder_path, item)
@@ -52,7 +52,6 @@ def extract_resnet_features(img_path, model):
 
 ### Build embeddings
 def build_database_embeddings(database_dir="image.orig"):
-    database_dir = database_dir.replace("/", sep).replace("\\", sep)
     database_files = sorted(glob(os.path.join(database_dir, "*.jpg")))
     db_features_list = []
 
