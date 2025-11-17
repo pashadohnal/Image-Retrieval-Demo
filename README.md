@@ -22,7 +22,7 @@ project_root/
 
 # How to Run
 
-# Run the Main Program
+### Run the Main Program
 
 Simply execute the main script:
 
@@ -43,7 +43,7 @@ Choose an option by typing the corresponding number.
 
 # Modes Explained
 
-# Option 1: Retrieve Most Similar Image
+### Option 1: Retrieve Most Similar Image
 - Select a query image category in the following list:
 
 ```
