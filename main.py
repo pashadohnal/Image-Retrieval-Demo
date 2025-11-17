@@ -185,7 +185,7 @@ def threshold_similarity(model, threshold, output_folder):
 
     true_class_files = [f for f, lbl in filename_label.items() if lbl == query_label]
 
-    TP = sum(1 for f in images if filename_label[os.path.basename(f)] == query_label)
+    TP = sum(1 for f in images if filename_label[os.path.basename(f).split('\\')[1]] == query_label)
     FP = len(images) - TP
     FN = len(true_class_files) - TP
 
