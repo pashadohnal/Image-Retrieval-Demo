@@ -177,6 +177,7 @@ def main():
     print("1: Retrieve most similar image")
     print("2: Find similar images with threshold")
     print("3: Relearn embeddings")
+    print("4: Evaluate performance")
     number = int(input("Choose: "))
 
     if number == 1:
@@ -190,8 +191,82 @@ def main():
         threshold_similarity(model, threshold, output)
     elif number == 3:
         build_database_embeddings("image.orig")
+    elif number == 4:
+        evaluate_all(model)
     else:
         print("Invalid input!")
         exit()
+
+
+#Evaluation script
+import pandas as pd
+
+def evaluate_all(model):
+    # Load embeddings
+    if not os.path.exists(EMBEDDINGS_FILE):
+        print("Embeddings missing — run build_database_embeddings() first.")
+        return
+
+    with open(EMBEDDINGS_FILE, "rb") as f:
+        data = pickle.load(f)
+
+    db_features = data["features"]
+    database_files = data["paths"]
+
+    # Category mapping
+    query_file_map = {
+        1: f"image.query{sep}beach.jpg",
+        2: f"image.query{sep}mountain.jpg",
+        3: f"image.query{sep}food.jpg",
+        4: f"image.query{sep}dinosaur.jpg",
+        5: f"image.query{sep}flower.jpg",
+        6: f"image.query{sep}horse.jpg",
+        7: f"image.query{sep}elephant.jpg"
+    }
+
+    thresholds = [round(x, 2) for x in np.arange(0.40, 0.91, 0.05)]
+
+    results = []
+
+    for label, img_path in query_file_map.items():
+        query_features = extract_resnet_features(img_path, model)
+        distances = np.linalg.norm(db_features - query_features, axis=1)
+        similarity = 1 / (1 + distances)
+        similarity_rescaled = (similarity - similarity.min()) / (similarity.max() - similarity.min())
+
+        true_class_files = [f for f, lbl in filename_label.items() if lbl == label]
+
+        for threshold in thresholds:
+            selected_images = [database_files[i] for i in range(len(similarity))
+                               if similarity_rescaled[i] > threshold]
+
+            TP = sum(1 for f in selected_images if filename_label.get(os.path.basename(f), -1) == label)
+            FP = len(selected_images) - TP
+            FN = len(true_class_files) - TP
+
+            precision_val = TP / (TP + FP) if (TP + FP) > 0 else 0
+            recall_val = TP / (TP + FN) if (TP + FN) > 0 else 0
+
+            results.append({
+                "Category": label,
+                "Threshold": threshold,
+                "TP": TP,
+                "FP": FP,
+                "FN": FN,
+                "Precision": precision_val,
+                "Recall": recall_val
+            })
+
+    # Convert to table and save
+    df = pd.DataFrame(results)
+    df.to_csv("evaluation_results.csv", index=False)
+
+    print("\nEvaluation complete! Saved results to evaluation_results.csv")
+    print(df)
+
+
+
+
+
 
 main()
