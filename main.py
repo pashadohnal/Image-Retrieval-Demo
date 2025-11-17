@@ -199,7 +199,7 @@ def threshold_similarity(model, threshold, output_folder):
 
 
 def relearn_embeddings(path, model):
-    pass
+    build_database_embeddings("image.orig", model)
 
 
 
