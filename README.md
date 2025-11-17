@@ -10,6 +10,7 @@ Before running the script, you need to ensure you have the Tensorflow and opencv
 
 The project folder is organized as follows:
 
+```
 project_root/
 │
 ├── main.py
@@ -17,6 +18,7 @@ project_root/
 ├── image.query/            # Query images
 ├── evaluation_results.csv  # Table of the results depending on the threshold
 └── db_embeddings.pkl       # (Generated automatically after first run)
+```
 
 # How to Run
 
@@ -44,7 +46,7 @@ Choose an option by typing the corresponding number.
 # Option 1: Retrieve Most Similar Image
 - Select a query image category in the following list:
 
-'''
+```
 1: beach.jpg,
 2: mountain.jpg,
 3: food.jpg,
@@ -52,7 +54,7 @@ Choose an option by typing the corresponding number.
 5: flower.jpg,
 6: horse.jpg,
 7: elephant.jpg
-'''
+```
 
 ### Option 2: Threshold-Based Similarity
 - You enter a similarity threshold (0 to 1).
