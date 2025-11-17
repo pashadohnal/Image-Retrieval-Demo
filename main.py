@@ -30,8 +30,6 @@ for i in labels:
 
 
 filename_label = dict(zip(files, img_labels))
-print(set(list(filename_label.values())[800:900]))
-print(list(filename_label.keys())[111])
 
 
 ### Preparing retrieval from saved embeddings
